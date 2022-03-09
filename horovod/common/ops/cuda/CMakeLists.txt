@@ -9,7 +9,7 @@ MESSAGE(STATUS "HVD_NVCC_COMPILE_FLAGS = ${HVD_NVCC_COMPILE_FLAGS}")
 set(CMAKE_CUDA_STANDARD 11)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
-add_library(horovod_cuda_kernels cuda_kernels.cu)
+add_library(horovod_cuda_kernels cuda_kernels.cc)
 target_compile_options(horovod_cuda_kernels PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
                        SHELL:${HVD_NVCC_COMPILE_FLAGS}
                        -D_GLIBCXX_USE_CXX11_ABI=1
@@ -17,7 +17,7 @@ target_compile_options(horovod_cuda_kernels PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
 set_property(TARGET horovod_cuda_kernels PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 # if we need compatible c++ abi, build a compatible version
-add_library(compatible_horovod_cuda_kernels cuda_kernels.cu)
+add_library(compatible_horovod_cuda_kernels cuda_kernels.cc)
 target_compile_options(compatible_horovod_cuda_kernels PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
                        SHELL:${HVD_NVCC_COMPILE_FLAGS}
                        -D_GLIBCXX_USE_CXX11_ABI=0

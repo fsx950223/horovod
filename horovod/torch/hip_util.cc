@@ -13,43 +13,41 @@
 // limitations under the License.
 // =============================================================================
 
-#ifndef HOROVOD_TORCH_READY_EVENT_H
-#define HOROVOD_TORCH_READY_EVENT_H
-
 #if HAVE_GPU
-#if HAVE_CUDA
-#include "cuda_runtime.h"
-#elif HAVE_ROCM
 #include "hip/hip_runtime.h"
+#include <ATen/ATen.h>
+#include <c10/hip/HIPGuard.h>
+#else
+#include <stdexcept>
 #endif
-#endif
-
-#include <memory>
 
 #include "../common/common.h"
+#include "cuda_util.h"
 
 namespace horovod {
 namespace torch {
 
-using namespace horovod::common;
-
+with_device::with_device(int device) {
+  if (device == CPU_DEVICE_ID) {
+    restore_device_ = CPU_DEVICE_ID;
+  } else {
 #if HAVE_GPU
-class TorchReadyEvent : public ReadyEvent {
-public:
-  TorchReadyEvent(int device);
-  ~TorchReadyEvent();
-  virtual bool Ready() const override;
-  gpuEvent_t event() const override;
-
-private:
-  int device_ = CPU_DEVICE_ID;
-  gpuEvent_t cuda_event_ = nullptr;
-};
+    C10_HIP_CHECK(hipGetDevice(&restore_device_));
+    C10_HIP_CHECK(hipSetDevice(device));
+#else
+    throw std::logic_error("Internal error. Requested device context manager "
+                           "with GPU device but not compiled with CUDA.");
 #endif
+  }
+}
 
-std::shared_ptr<ReadyEvent> RecordReadyEvent(int device);
+with_device::~with_device() {
+#if HAVE_GPU
+  if (restore_device_ != CPU_DEVICE_ID) {
+    C10_HIP_CHECK(hipSetDevice(restore_device_));
+  }
+#endif
+}
 
 } // namespace torch
 } // namespace horovod
-
-#endif // HOROVOD_TORCH_READY_EVENT_H

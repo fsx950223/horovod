@@ -26,6 +26,7 @@
 
 #include "message.h"
 #include "nvtx_op_range.h"
+#include "logging.h"
 
 #if HAVE_GPU
 #if HAVE_CUDA
@@ -46,7 +47,7 @@ using gpuStream_t = cudaStream_t;
     }                                                                                       \
   } while (0)
 #endif
-#elif HAVE_ROCM
+#if HAVE_ROCM
 #include <hip/hip_runtime_api.h>
 using gpuError_t = hipError_t;
 using gpuEvent_t = hipEvent_t;
@@ -64,7 +65,7 @@ using gpuStream_t = hipStream_t;
     }                                                                                     \
   } while (0)
 #endif
-
+#endif
 
 namespace horovod {
 namespace common {

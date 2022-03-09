@@ -13,9 +13,9 @@
 // limitations under the License.
 // =============================================================================
 
-#if HAVE_CUDA
-#include <c10/cuda/CUDAStream.h>
-#include <c10/cuda/CUDAException.h>
+#if HAVE_ROCM
+#include <c10/hip/HIPStream.h>
+#include <c10/hip/HIPException.h>
 #include <cassert>
 #include <mutex>
 #include <queue>
@@ -30,9 +30,9 @@
 namespace horovod {
 namespace torch {
 
-#if HAVE_CUDA
+#if HAVE_ROCM
 struct ReadyEventRegistry {
-  std::unordered_map<int, std::queue<cudaEvent_t>> cuda_events;
+  std::unordered_map<int, std::queue<hipEvent_t>> cuda_events;
   std::mutex mutex;
 };
 
@@ -49,12 +49,12 @@ TorchReadyEvent::TorchReadyEvent(int device) : device_(device) {
       cuda_event_ = queue.front();
       queue.pop();
     } else {
-      C10_CUDA_CHECK(cudaEventCreateWithFlags(
-          &cuda_event_, cudaEventBlockingSync | cudaEventDisableTiming));
+      C10_HIP_CHECK(hipEventCreateWithFlags(
+          &cuda_event_, hipEventBlockingSync | hipEventDisableTiming));
     }
   }
-  auto stream = c10::cuda::getCurrentCUDAStream(device_);
-  C10_CUDA_CHECK(cudaEventRecord(cuda_event_, stream));
+  auto stream = c10::hip::getCurrentHIPStream(device_);
+  C10_HIP_CHECK(hipEventRecord(cuda_event_, stream));
 }
 
 TorchReadyEvent::~TorchReadyEvent() {
@@ -66,7 +66,7 @@ TorchReadyEvent::~TorchReadyEvent() {
 }
 
 bool TorchReadyEvent::Ready() const {
-  C10_CUDA_CHECK(cudaEventSynchronize(cuda_event_));
+  C10_HIP_CHECK(hipEventSynchronize(cuda_event_));
   return true;
 }
 
@@ -81,7 +81,7 @@ std::shared_ptr<ReadyEvent> RecordReadyEvent(int device) {
   if (device == CPU_DEVICE_ID) {
     return std::shared_ptr<ReadyEvent>();
   } else {
-#if HAVE_CUDA
+#if HAVE_ROCM
     return std::make_shared<TorchReadyEvent>(device);
 #else
     throw std::logic_error("Internal error. Requested ReadyEvent "

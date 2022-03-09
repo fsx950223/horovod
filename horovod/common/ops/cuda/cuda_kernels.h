@@ -15,8 +15,15 @@
 
 #ifndef CUDA_KERNELS_H
 #define CUDA_KERNELS_H
-
+#if HAVE_CUDA
+#include <cuda_fp16.h>
 #include <cuda_runtime.h>
+using gpuStream_t = cudaStream_t;
+#elif HAVE_ROCM
+#include <hip/hip_fp16.h>
+#include <hip/hip_runtime.h>
+using gpuStream_t = hipStream_t;
+#endif
 
 #include "../../message.h"
 
@@ -33,14 +40,14 @@ struct BatchedD2DParams {
 };
 
 // Performs a batched d2d memcopy
-void BatchedD2DMemcpyCudaImpl(BatchedD2DParams& params, int num_copies, cudaStream_t stream);
+void BatchedD2DMemcpyCudaImpl(BatchedD2DParams& params, int num_copies, gpuStream_t stream);
 
 // Scales buffer by scalar
 void ScaleBufferCudaImpl(const void* fused_input_data, void* buffer_data, const int64_t num_elements,
-                         double scale_factor, DataType dtype, cudaStream_t stream);
+                         double scale_factor, DataType dtype, gpuStream_t stream);
 
 void BatchedScaledD2DMemcpyCudaImpl(BatchedD2DParams& params, int num_copies, double scale_factor,
-                                    DataType dtype, cudaStream_t stream);
+                                    DataType dtype, gpuStream_t stream);
 
 } // namespace common
 } // namespace horovod

@@ -16,7 +16,6 @@
 #include "cuda_kernels.h"
 
 #include <stdexcept>
-#include <cuda_fp16.h>
 
 namespace horovod {
 namespace common {
@@ -77,7 +76,7 @@ __global__ void batched_memcpy_k(BatchedD2DParams params) {
 
 #define NTHREADS_D2D_KERNEL 1024
 #define BLOCKS_PER_COPY_D2D_KERNEL 8
-void BatchedD2DMemcpyCudaImpl(BatchedD2DParams& params, int num_copies, cudaStream_t stream)
+void BatchedD2DMemcpyCudaImpl(BatchedD2DParams& params, int num_copies, gpuStream_t stream)
 {
    batched_memcpy_k<BLOCKS_PER_COPY_D2D_KERNEL><<<num_copies * BLOCKS_PER_COPY_D2D_KERNEL,
                                                   NTHREADS_D2D_KERNEL, 0, stream>>>(params);
@@ -137,7 +136,7 @@ __global__ void scale_buffer_k(const __half* input, __half* output, int64_t num_
 
 #define NTHREADS_SCALE_BUFFER_KERNEL 512
 void ScaleBufferCudaImpl(const void* fused_input_data, void* buffer_data, const int64_t num_elements, double scale_factor,
-                         DataType dtype, cudaStream_t stream) {
+                         DataType dtype, gpuStream_t stream) {
   const int64_t blocks = (num_elements + NTHREADS_SCALE_BUFFER_KERNEL - 1) / NTHREADS_SCALE_BUFFER_KERNEL;
   const int threads = NTHREADS_SCALE_BUFFER_KERNEL;
   switch (dtype) {
@@ -287,7 +286,7 @@ __global__ void batched_scaled_memcpy_k(BatchedD2DParams params, TS scale_factor
 }
 
 void BatchedScaledD2DMemcpyCudaImpl(BatchedD2DParams& params, int num_copies, double scale_factor,
-                                    DataType dtype, cudaStream_t stream) {
+                                    DataType dtype, gpuStream_t stream) {
   const int64_t blocks = num_copies * BLOCKS_PER_COPY_D2D_KERNEL;
   const int threads = NTHREADS_D2D_KERNEL;
   switch (dtype) {
